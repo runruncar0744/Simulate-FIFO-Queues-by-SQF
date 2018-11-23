@@ -11,8 +11,6 @@
 #include <iomanip>
 #include <algorithm>
 
-#define SWAP(x,y) {int t; t = x; x = y; y = t;}
-
 using namespace std ;
 
 static ifstream input ;
@@ -21,26 +19,54 @@ static int QueueTime1 = 0 ;
 static int QueueTime2 = 0 ;
 static int FileN = 0 ;
 
-typedef struct OrderStuct {
-    int id = 0 ;
+typedef struct OrderStruct {
+    int orderID = 0 ;
+    int cookID = 0 ;
     int arrivalTime = 0 ;
     int duration = 0 ;
     int timeout = 0 ;
     int delay = 0 ;
+    int abort = 0 ;
+    int departure = 0 ;
     string whole = "\0" ;
 } Data ;
 
 class Functions {
 
-    vector<OrderStuct> orders ;
+    vector<OrderStruct> orders ;
+    vector<OrderStruct> queue ;
+    vector<OrderStruct> abort ;
+    vector<OrderStruct> timeout ;
     string labels = "\0" ;
 
 public:
 
+    void inputSort() {
+        orders.clear() ;
+        int dataCount = 0 ;
+        string sentence = "\0" ;
+        OrderStruct tempOrder ;
+        getline( input, labels ) ;
+
+        while ( getline( input, sentence ) ) {
+            tempOrder.whole = sentence ; // save the whole data first
+            vector<string> data ;
+            string token ;
+            istringstream cut( sentence ) ;
+            while ( getline( cut, token, '\t' ) ) data.push_back( token ) ; // cut the data
+            tempOrder.orderID = atoi( data[0].c_str() ) ; // set the first token to id
+            tempOrder.arrivalTime = atoi( data[1].c_str() ) ; // set the second token to arrivalTime
+            tempOrder.duration = atoi( data[2].c_str() ) ; // set the third token to duration
+            tempOrder.timeout = atoi( data[3].c_str() ) ; // set the forth token to timeout
+            orders.push_back( tempOrder ) ; // push tempOrder to the orders dataBase
+            dataCount++ ;
+        } // read and analyze the data
+    } // inputSort()
+
     void shellSort() {
         int dataCount = 0 ;
         string sentence = "\0" ;
-        OrderStuct tempOrder ;
+        OrderStruct tempOrder ;
         orders.clear() ;
         getline( input, labels ) ; // get the labels
 
@@ -50,7 +76,7 @@ public:
             string token ;
             istringstream cut( sentence ) ;
             while ( getline( cut, token, '\t' ) ) data.push_back( token ) ; // cut the data
-            tempOrder.id = atoi( data[0].c_str() ) ; // set the first token to id
+            tempOrder.orderID = atoi( data[0].c_str() ) ; // set the first token to id
             tempOrder.arrivalTime = atoi( data[1].c_str() ) ; // set the second token to arrivalTime
             tempOrder.duration = atoi( data[2].c_str() ) ; // set the third token to duration
             tempOrder.timeout = atoi( data[3].c_str() ) ; // set the forth token to timeout
@@ -58,7 +84,7 @@ public:
             dataCount++ ;
         } // read and analyze the data
 
-        OrderStuct temp ;
+        OrderStruct temp ;
         for( int gap = dataCount/2 ; gap > 0 ; gap /= 2 ) {
             for( int i = gap ; i < dataCount ; i += 1 ) {
                 temp = orders[i] ;
@@ -69,13 +95,13 @@ public:
         } // for()
 
         for ( int i = 0 ; i < orders.size() ; i ++ ) {
-            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].id > orders[i+1].id ) swap( orders[i], orders[i+1] ) ;
+            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].orderID > orders[i+1].orderID ) swap( orders[i], orders[i+1] ) ;
         } // for()
         for ( int i = 0 ; i < orders.size() ; i ++ ) {
-            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].id > orders[i+1].id ) swap( orders[i], orders[i+1] ) ;
+            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].orderID > orders[i+1].orderID ) swap( orders[i], orders[i+1] ) ;
         } // for()
         for ( int i = 0 ; i < orders.size() ; i ++ ) {
-            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].id > orders[i+1].id ) swap( orders[i], orders[i+1] ) ;
+            if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].orderID > orders[i+1].orderID ) swap( orders[i], orders[i+1] ) ;
         } // for()
 
         if ( FileN == 401 ) output.open( "sort401.txt" ) ;
@@ -84,6 +110,118 @@ public:
         output << labels << endl ;
         for( int i = 0 ; i < orders.size() ; i ++ ) output << orders[i].whole << endl ;
     } // shellSort()
+
+    void simulate() {
+        inputSort() ;
+        int denominator = orders.size() ;
+        int fail = 0 ;
+        int totalDelay = 0 ;
+        double failPercent = 0 ;
+
+        while ( orders.size() != 0  ) { // compare the tasks with the current queue time
+
+            cout << "Order Count is : " << orders.size() << endl ;
+            cout << "Current Order is : " << orders.front().orderID << " " << orders.front().arrivalTime << " "  << orders.front().duration << " " << orders.front().timeout << endl ;
+            cout << "Current Queue Time is : " << QueueTime1 << endl ;
+            if ( orders.front().arrivalTime > QueueTime1 || orders.size() == 0 ) {
+                if ( queue.empty() ) {
+                    cout << "First Order In : " << orders.front().orderID << endl ;
+                    QueueTime1 += orders.front().duration ;
+                    QueueTime1 += orders.front().arrivalTime ;
+                    orders.erase( orders.begin() ) ;
+                } // if the queue is empty, push the time and finish the next order
+
+                if ( ! queue.empty() ) {
+                    if ( QueueTime1 <= queue.front().timeout ) QueueTime1 += queue.front().duration ;
+
+                    else {
+                        queue.front().delay = QueueTime1 - queue.front().arrivalTime ;
+                        totalDelay += queue.front().delay ;
+                        queue.front().abort = QueueTime1 ;
+                        cout << "push " << queue.front().orderID << " into abort" << endl ;
+                        abort.push_back( queue.front() ) ;
+                        fail ++ ;
+                    } // when the task in the queue isn't feasible anymore, abort and count the fail
+
+                    if ( QueueTime1 > queue.front().timeout ) {
+                        queue.front().delay = QueueTime1 - queue.front().arrivalTime ;
+                        totalDelay += queue.front().delay ;
+                        queue.front().departure = QueueTime1 ;
+                        cout << "push " << queue.front().orderID << " into timeout" << endl ;
+                        timeout.push_back( queue.front() ) ;
+                        fail ++ ;
+                    } // after the task is finished, found out that it run out of time
+
+                    queue.erase( queue.begin() ) ;
+                } // if the queue isn't empty, finish the tasks in the queue
+            } // first order or orders that orders before current queue time
+
+            else if ( orders.front().arrivalTime <= QueueTime1 ) {
+
+                if ( queue.size() < 3 ) {
+                    cout << "push " << orders.front().orderID << " into queue" << endl ;
+                    queue.push_back( orders.front() ) ;
+                } // if()
+
+                else {
+                    orders.front().delay = 0 ;
+                    orders.front().abort = orders.front().arrivalTime ;
+                    cout << "push " << orders.front().orderID << " into abort" << endl ;
+                    abort.push_back( orders.front() ) ;
+                    fail ++ ;
+                } // arrival time greater or equal to current queue time
+
+                orders.erase( orders.begin() ) ;
+            } // check the queue to find out should the order be abort or push into the queue
+
+             if ( orders.size() == 0 && queue.size() != 0 ) {
+
+
+             } // if
+
+        } // run orders and tasks
+
+        while ( orders.size() == 0 && queue.size() != 0 ) {
+          if ( QueueTime1 > queue.front().timeout ) {
+                queue.front().delay = QueueTime1 - queue.front().arrivalTime ;
+                totalDelay += queue.front().delay ;
+                queue.front().abort = QueueTime1 ;
+                cout << "push " << queue.front().orderID << " into abort" << endl ;
+                abort.push_back( queue.front() ) ;
+                fail ++ ;
+          } // after the task is finished, found out that it run out of time
+
+          else QueueTime1 += queue.front().duration;
+
+          queue.erase( queue.begin() ) ;
+
+        } // while
+
+
+        failPercent = fail / denominator * 100 ;
+        // print messages
+        if ( FileN == 401 ) output.open( "one401.txt" ) ;
+        else if ( FileN == 402 ) output.open( "one402.txt" ) ;
+        output << '\t' << "[Abort List]" << endl ;
+        output << '\t' << "OID" << '\t' << "Delay" << '\t' << "Abort" << endl ;
+        output << "Abort List size is : " << abort.size() << endl ; // debug line
+        for ( int i = 0 ; i < abort.size() ; i ++ ) output << "[" << i+1 << "]" << '\t' << abort[i].orderID << '\t' << abort[i].delay << '\t' << abort[i].abort << endl ;
+
+        output << '\t' << "[Timeout List]" << endl ;
+        output << '\t' << "OID" << '\t' << "Delay" << '\t' << "Departure" << endl ;
+        output << "Timeout List size is : " << timeout.size() << endl ; // debug line
+        for ( int i = 0 ; i < timeout.size() ; i ++ ) output << "[" << i+1 << "]" << '\t' << timeout[i].orderID << '\t' << timeout[i].delay << '\t' << timeout[i].departure << endl ;
+
+        output << "[Total Delay]" << endl ;
+        output << totalDelay << " min." << endl ;
+        output << "[Failure Percentage]" << endl ;
+        output << failPercent << " %" << endl ;
+
+    }
+
+    void doubleSimulate() {
+
+    }
 
 } ;
 
@@ -139,7 +277,7 @@ int main() {
 
                     else {
                         function1Confirm = true ;
-                        simulate.shellSort() ;
+                        shellSort.shellSort() ;
                         continueOrNot = true ;
                     } // find input 401
                 } // test if you have already create a sort file
@@ -150,7 +288,7 @@ int main() {
 
                     else {
                         function1Confirm = true ;
-                        simulate.shellSort() ;
+                        shellSort.shellSort() ;
                         continueOrNot = true ;
                     } // find input 402
                 } // test if you have already create a sort file
@@ -184,6 +322,7 @@ int main() {
 
                     else {
                         function2Confirm = true ;
+                        simulate.simulate() ;
                         continueOrNot = true ;
                     } // find sort 401
                 } // test if you have already create a sort file
@@ -194,6 +333,7 @@ int main() {
 
                     else {
                         function2Confirm = true ;
+                        simulate.simulate() ;
                         continueOrNot = true ;
                     } // find sort 402
                 } // test if you have already create a sort file
