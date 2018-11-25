@@ -120,7 +120,6 @@ public:
         int totalDelay = 0 ;
         double failPercent = 0 ;
 
-        while ( orders.size() != 0 ) { // compare the tasks with the current queue1 time
             cout << "Order Count is : " << orders.size() << endl ;
             cout << "Current Order is : " << orders.front().orderID << " " << orders.front().arrivalTime << " " << orders.front().duration << " " << orders.front().timeout << endl ;
             cout << "Current Queue Time is : " << QueueTime1 << endl ;
@@ -175,35 +174,6 @@ public:
                 } // arrival time greater or equal to current queue time
                 orders.erase( orders.begin() ) ;
             } // check the queue to find out should the order be abort or push into the queue
-        } // run orders and tasks
-
-        while ( queue1.size() != 0 ) {
-            if ( QueueTime1 < queue1.front().arrivalTime ) QueueTime1 = queue1.front().arrivalTime ;
-            // push the time
-            if ( QueueTime1 < queue1.front().timeout ) {
-                QueueTime1 += queue1.front().duration ;
-                if ( QueueTime1 > queue1.front().timeout ) {
-                    queue1.front().delay = QueueTime1 - queue1.front().arrivalTime - queue1.front().duration ;
-                    totalDelay += queue1.front().delay ;
-                    queue1.front().departure = QueueTime1 ;
-                    cout << "push " << queue1.front().orderID << " into timeout" << endl << endl ;
-                    queue1.front().cookID = 1;
-                    timeout.push_back( queue1.front() ) ;
-                    fail ++ ;
-                } // time out orders
-            } // after the task is finished, found out that it run out of time
-            // feasible orders
-            else {
-                queue1.front().delay = QueueTime1 - queue1.front().arrivalTime ;
-                totalDelay += queue1.front().delay ;
-                queue1.front().abort = QueueTime1 ;
-                cout << "push " << queue1.front().orderID << " into abort" << endl << endl ;
-                queue1.front().cookID = 1;
-                abort.push_back( queue1.front() ) ;
-                fail ++ ;
-            } // when the task in the queue isn't feasible anymore, abort and count the fail
-            queue1.erase( queue1.begin() ) ;
-        } // if the queue isn't empty, finish the tasks in the queue
 
     } //queue1()
 
@@ -215,7 +185,6 @@ public:
         int totalDelay = 0 ;
         double failPercent = 0 ;
 
-        while ( orders.size() != 0 ) { // compare the tasks with the current queue time
             cout << "Order Count is : " << orders.size() << endl ;
             cout << "Current Order is : " << orders.front().orderID << " " << orders.front().arrivalTime << " " << orders.front().duration << " " << orders.front().timeout << endl ;
             cout << "Current Queue Time is : " << QueueTime2 << endl ;
@@ -270,35 +239,6 @@ public:
                 } // arrival time greater or equal to current queue time
                 orders.erase( orders.begin() ) ;
             } // check the queue to find out should the order be abort or push into the queue
-        } // run orders and tasks
-
-        while ( queue2.size() != 0 ) {
-            if ( QueueTime2 < queue2.front().arrivalTime ) QueueTime2 = queue2.front().arrivalTime ;
-            // push the time
-            if ( QueueTime2 < queue2.front().timeout ) {
-                QueueTime2 += queue2.front().duration ;
-                if ( QueueTime2 > queue2.front().timeout ) {
-                    queue2.front().delay = QueueTime2 - queue2.front().arrivalTime - queue2.front().duration ;
-                    totalDelay += queue2.front().delay ;
-                    queue2.front().departure = QueueTime2 ;
-                    cout << "push " << queue2.front().orderID << " into timeout" << endl << endl ;
-                    queue2.front().cookID = 2;
-                    timeout.push_back( queue2.front() ) ;
-                    fail ++ ;
-                } // time out orders
-            } // after the task is finished, found out that it run out of time
-            // feasible orders
-            else {
-                queue2.front().delay = QueueTime2 - queue2.front().arrivalTime ;
-                totalDelay += queue2.front().delay ;
-                queue2.front().abort = QueueTime2 ;
-                cout << "push " << queue2.front().orderID << " into abort" << endl << endl ;
-                queue2.front().cookID = 2;
-                abort.push_back( queue2.front() ) ;
-                fail ++ ;
-            } // when the task in the queue isn't feasible anymore, abort and count the fail
-            queue2.erase( queue2.begin() ) ;
-        } // if the queue isn't empty, finish the tasks in the queue
 
     } //queue2()
 
@@ -422,32 +362,26 @@ public:
         while ( orders.size() != 0 ) { // compare the tasks with the current queue time
 
             if ( queue1.empty() && queue2.empty() ) {
-                queue1.push_back( orders.front() ) ;
                 Queue1();
             } // q1 && q2 empty
 
             else if( queue1.empty() && !queue2.empty() ) {
-                queue1.push_back( orders.front() ) ;
                 Queue1();
             } // q1 empty
 
             else if( queue2.empty() && !queue1.empty() ) {
-                queue2.push_back( orders.front() ) ;
                 Queue2();
             } // q2 empty
 
             else if( queue1.size() > queue2.size() ) {
-                queue2.push_back( orders.front() ) ;
                 Queue2();
             } // q1 size > q2
 
             else if( queue1.size() < queue2.size() ) {
-                queue1.push_back( orders.front() ) ;
                 Queue1();
             } // q1 size < q2
 
             else if( queue1.size() == queue2.size() && queue1.size() != 3 && queue2.size() != 3 ) {
-                queue1.push_back( orders.front() ) ;
                 Queue1();
             } // q1 size = q2
 
@@ -457,11 +391,67 @@ public:
                 cout << "push " << orders.front().orderID << " into abort" << endl << endl ;
                 abort.push_back( orders.front() ) ;
                 fail ++ ;
+                orders.erase( orders.begin() ) ;
             } // q1  q2 full --> abort list
 
-            orders.erase( orders.begin() ) ;
-
         } // run orders and tasks
+
+        while ( queue1.size() != 0 ) {
+            if ( QueueTime1 < queue1.front().arrivalTime ) QueueTime1 = queue1.front().arrivalTime ;
+            // push the time
+            if ( QueueTime1 < queue1.front().timeout ) {
+                QueueTime1 += queue1.front().duration ;
+                if ( QueueTime1 > queue1.front().timeout ) {
+                    queue1.front().delay = QueueTime1 - queue1.front().arrivalTime - queue1.front().duration ;
+                    totalDelay += queue1.front().delay ;
+                    queue1.front().departure = QueueTime1 ;
+                    cout << "push " << queue1.front().orderID << " into timeout" << endl << endl ;
+                    queue1.front().cookID = 1;
+                    timeout.push_back( queue1.front() ) ;
+                    fail ++ ;
+                } // time out orders
+            } // after the task is finished, found out that it run out of time
+            // feasible orders
+            else {
+                queue1.front().delay = QueueTime1 - queue1.front().arrivalTime ;
+                totalDelay += queue1.front().delay ;
+                queue1.front().abort = QueueTime1 ;
+                cout << "push " << queue1.front().orderID << " into abort" << endl << endl ;
+                queue1.front().cookID = 1;
+                abort.push_back( queue1.front() ) ;
+                fail ++ ;
+            } // when the task in the queue isn't feasible anymore, abort and count the fail
+            queue1.erase( queue1.begin() ) ;
+        } // if the queue isn't empty, finish the tasks in the queue
+
+
+        while ( queue2.size() != 0 ) {
+            if ( QueueTime2 < queue2.front().arrivalTime ) QueueTime2 = queue2.front().arrivalTime ;
+            // push the time
+            if ( QueueTime2 < queue2.front().timeout ) {
+                QueueTime2 += queue2.front().duration ;
+                if ( QueueTime2 > queue2.front().timeout ) {
+                    queue2.front().delay = QueueTime2 - queue2.front().arrivalTime - queue2.front().duration ;
+                    totalDelay += queue2.front().delay ;
+                    queue2.front().departure = QueueTime2 ;
+                    cout << "push " << queue2.front().orderID << " into timeout" << endl << endl ;
+                    queue2.front().cookID = 2;
+                    timeout.push_back( queue2.front() ) ;
+                    fail ++ ;
+                } // time out orders
+            } // after the task is finished, found out that it run out of time
+            // feasible orders
+            else {
+                queue2.front().delay = QueueTime2 - queue2.front().arrivalTime ;
+                totalDelay += queue2.front().delay ;
+                queue2.front().abort = QueueTime2 ;
+                cout << "push " << queue2.front().orderID << " into abort" << endl << endl ;
+                queue2.front().cookID = 2;
+                abort.push_back( queue2.front() ) ;
+                fail ++ ;
+            } // when the task in the queue isn't feasible anymore, abort and count the fail
+            queue2.erase( queue2.begin() ) ;
+        } // if the queue isn't empty, finish the tasks in the queue
 
 
         failPercent = ( (float)fail / (float)denominator ) * 100 ;
