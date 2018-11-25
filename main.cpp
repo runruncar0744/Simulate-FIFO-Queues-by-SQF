@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <algorithm>
+#include <time.h>
 
 using namespace std ;
 
@@ -72,6 +73,12 @@ public:
         orders.clear() ;
         getline( input, labels ) ; // get the labels
 
+        clock_t read, readend ; // create a time variable
+        clock_t sortTime, sortEnd ; // create a time variable
+        clock_t write, writeEnd ; // create a time variable
+
+        read = clock() ; // start the timer
+
         while ( getline( input, sentence ) ) {
             tempOrder.whole = sentence ; // save the whole data first
             vector<string> data ;
@@ -85,6 +92,14 @@ public:
             orders.push_back( tempOrder ) ; // push tempOrder to the orders dataBase
             dataCount++ ;
         } // read and analyze the data
+
+        readend = clock();
+        read = readend - read ; // get the precise time
+
+        cout << labels << endl ;
+        for( int i = 0 ; i < orders.size() ; i ++ ) cout << orders[i].whole << endl ;
+
+        sortTime = clock() ;
 
         OrderStruct temp ;
         for( int gap = dataCount/2 ; gap > 0 ; gap /= 2 ) {
@@ -106,11 +121,29 @@ public:
             if ( orders[i].arrivalTime == orders[i+1].arrivalTime && orders[i].orderID > orders[i+1].orderID ) swap( orders[i], orders[i+1] ) ;
         } // for()
 
+        sortEnd = clock();
+        sortTime = sortEnd - sortTime ; // get the precise time
+
+
+        write = clock();
+
         if ( FileN == 401 ) output.open( "sort401.txt" ) ;
         else if ( FileN == 402 ) output.open( "sort402.txt" ) ;
 
         output << labels << endl ;
         for( int i = 0 ; i < orders.size() ; i ++ ) output << orders[i].whole << endl ;
+
+        writeEnd = clock();
+        write  = writeEnd - write;
+
+        cout << endl;
+        cout << "Reading data = " << read * 1000 / CLOCKS_PER_SEC << " ms" << endl << endl ; // print out the time
+        cout << "Sorting data = " << sortTime * 1000 / CLOCKS_PER_SEC << " ms" << endl << endl ; // print out the time
+        cout << "Writing data = " << write * 1000 / CLOCKS_PER_SEC << " ms" << endl << endl ; // print out the time
+
+        cout << labels << endl ;
+        for( int i = 0 ; i < orders.size() ; i ++ ) cout << orders[i].whole << endl ;
+
     } // shellSort()
 
     void Queue1() {
@@ -362,27 +395,33 @@ public:
         while ( orders.size() != 0 ) { // compare the tasks with the current queue time
 
             if ( queue1.empty() && queue2.empty() ) {
+                cout << "1" << endl;
                 Queue1();
             } // q1 && q2 empty
 
             else if( queue1.empty() && !queue2.empty() ) {
-                Queue1();
+                cout << "1" << endl;
+                //Queue1();
             } // q1 empty
 
             else if( queue2.empty() && !queue1.empty() ) {
-                Queue2();
+                cout << "2" << endl;
+                //Queue2();
             } // q2 empty
 
             else if( queue1.size() > queue2.size() ) {
-                Queue2();
+                cout << "2" << endl;
+                //Queue2();
             } // q1 size > q2
 
             else if( queue1.size() < queue2.size() ) {
-                Queue1();
+                cout << "1" << endl;
+                //Queue1();
             } // q1 size < q2
 
             else if( queue1.size() == queue2.size() && queue1.size() != 3 && queue2.size() != 3 ) {
-                Queue1();
+                cout << "1" << endl;
+                //Queue1();
             } // q1 size = q2
 
             else if( queue1.size() == 3 && queue2.size() == 3 ) {
