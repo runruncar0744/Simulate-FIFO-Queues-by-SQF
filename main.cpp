@@ -35,6 +35,8 @@ class Functions {
 
     vector<OrderStruct> orders ;
     vector<OrderStruct> queue ;
+    vector<OrderStruct> queue1;
+    vector<OrderStruct> queue2;
     vector<OrderStruct> abort ;
     vector<OrderStruct> timeout ;
     string labels = "\0" ;
@@ -218,11 +220,149 @@ public:
         // output << fail << " / " << denominator << " =" << endl ;
         output << setprecision(4) << failPercent << " %" << endl ;
 
-    }
+    } //simulate()
 
     void doubleSimulate() {
 
-    }
+        inputSort() ;
+        int denominator = orders.size() ;
+        int fail = 0 ;
+        int totalDelay = 0 ;
+        double failPercent = 0 ;
+
+        while ( orders.size() != 0 ) { // compare the tasks with the current queue time
+            cout << "Order Count is : " << orders.size() << endl ;
+            cout << "Current Order is : " << orders.front().orderID << " " << orders.front().arrivalTime << " " << orders.front().duration << " " << orders.front().timeout << endl ;
+            cout << "Current Queue Time is : " << QueueTime1 << endl ;
+
+            //---------------------queue process---------------------//
+
+            if( queue1.size() != 0 ) {
+                if( queue1.front().timeout >= QueueTime1 ) {
+                    queue1.front().delay = QueueTime1 - queue1.front().arrivalTime ;
+                    totalDelay += queue1.front().delay ;
+                    queue1.front().abort = QueueTime1 ;
+                    cout << "push " << queue1.front().orderID << " into abort" << endl << endl ;
+                    queue1.front().cookID = 1 ;
+                    abort.push_back( queue1.front() ) ;
+                    fail ++ ;
+                } // time out when it arrives -> abort list
+
+                else {
+                  QueueTime1 += queue1.front().duration;
+                  if ( QueueTime1 > queue1.front().timeout ) {
+                    queue1.front().delay = QueueTime1 - queue1.front().arrivalTime - queue1.front().duration ;
+                    totalDelay += queue1.front().delay ;
+                    queue1.front().departure = QueueTime1 ;
+                    cout << "push " << queue1.front().orderID << " into timeout" << endl << endl ;
+                    queue1.front().cookID = 1 ;
+                    timeout.push_back( queue1.front() ) ;
+                    fail ++ ;
+                  } // time out orders
+               } // else
+
+            } // queue1 process
+
+            if( queue2.size() != 0 ) {
+                if( queue2.front().timeout >= QueueTime2 ) {
+                    queue2.front().delay = QueueTime2 - queue2.front().arrivalTime ;
+                    totalDelay += queue2.front().delay ;
+                    queue2.front().abort = QueueTime2 ;
+                    cout << "push " << queue2.front().orderID << " into abort" << endl << endl ;
+                    queue2.front().cookID = 2 ;
+                    abort.push_back( queue2.front() ) ;
+                    fail ++ ;
+                } // time out when it arrives -> abort list
+
+              else {
+                  QueueTime2 += queue2.front().duration;
+                  if ( QueueTime2 > queue2.front().timeout ) {
+                    queue2.front().delay = QueueTime2 - queue2.front().arrivalTime - queue2.front().duration ;
+                    totalDelay += queue2.front().delay ;
+                    queue2.front().departure = QueueTime2 ;
+                    cout << "push " << queue2.front().orderID << " into timeout" << endl << endl ;
+                    queue2.front().cookID = 2 ;
+                    timeout.push_back( queue2.front() ) ;
+                    fail ++ ;
+                  } // time out orders
+              } // else
+
+            } // queue2 process
+
+            queue1.erase( queue1.begin() ) ;
+            queue2.erase( queue2.begin() ) ;
+
+            //---------------------queue process---------------------//
+
+            //---------------------order place process---------------------//
+
+            if ( queue1.empty() && queue2.empty() ) {
+                cout << "First Order In : " << orders.front().orderID << endl << endl ;
+                queue1.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q1 && q2 empty
+
+            else if( queue1.empty() && !queue2.empty() ) {
+                queue1.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q1 empty
+
+            else if( queue2.empty() && !queue1.empty() ) {
+                queue2.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q2 empty
+
+            else if( queue1.size() > queue2.size() ) {
+                queue2.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q1 size > q2
+
+            else if( queue1.size() < queue2.size() ) {
+                queue1.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q1 size < q2
+
+            else if( queue1.size() == queue2.size() && queue1.size() != 3 && queue2.size() != 3 ) {
+                queue1.push_back( orders.front() ) ;
+                orders.erase( orders.begin() ) ;
+            } // q1 size = q2
+
+            else if( queue1.size() == 3 && queue2.size() == 3 ) {
+                orders.front().delay = 0 ;
+                orders.front().abort = orders.front().arrivalTime ;
+                cout << "push " << orders.front().orderID << " into abort" << endl << endl ;
+                abort.push_back( orders.front() ) ;
+                fail ++ ;
+            } // q1  q2 full --> abort list
+
+            orders.erase( orders.begin() ) ;
+
+            //---------------------order place process---------------------//
+
+        } // run orders and tasks
+
+
+        failPercent = ( (float)fail / (float)denominator ) * 100 ;
+        if ( FileN == 401 ) output.open( "one401.txt" ) ;
+        else if ( FileN == 402 ) output.open( "one402.txt" ) ;
+        // print messages
+        output << '\t' << "[Abort List]" << endl ;
+        output << '\t' << "OID" << '\t' << "CID" << '\t' << "Delay" << '\t' << "Abort" << endl ;
+        // output << "Abort List size is : " << abort.size() << endl ; // debug line
+        for ( int i = 0 ; i < abort.size() ; i ++ ) output << "[" << i+1 << "]" << '\t' << abort[i].orderID << '\t' << abort[i].cookID << '\t' << abort[i].delay << '\t' << abort[i].abort << endl ;
+
+        output << '\t' << "[Timeout List]" << endl ;
+        output << '\t' << "OID" << '\t' << "CID" << '\t' << "Delay" << '\t' << "Departure" << endl ;
+        // output << "Timeout List size is : " << timeout.size() << endl ; // debug line
+        for ( int i = 0 ; i < timeout.size() ; i ++ ) output << "[" << i+1 << "]" << '\t' << timeout[i].orderID << '\t' << timeout[i].cookID << '\t' << timeout[i].delay << '\t' << timeout[i].departure << endl ;
+
+        output << "[Total Delay]" << endl ;
+        output << totalDelay << " min." << endl ;
+        output << "[Failure Percentage]" << endl ;
+        // output << fail << " / " << denominator << " =" << endl ;
+        output << setprecision(4) << failPercent << " %" << endl ;
+
+    } // doublesimulate()
 
 } ;
 
@@ -369,6 +509,7 @@ int main() {
 
                     else {
                         function3Confirm = true ;
+                        doubleSimulate.doubleSimulate() ;
                         continueOrNot = true ;
                     } // find sort 401
                 } // test if you have already create a sort file
@@ -379,6 +520,7 @@ int main() {
 
                     else {
                         function3Confirm = true ;
+                        doubleSimulate.doubleSimulate() ;
                         continueOrNot = true ;
                     } // find sort 402
                 } // test if you have already create a sort file
